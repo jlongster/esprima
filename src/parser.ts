@@ -1529,6 +1529,8 @@ export class Parser {
 
         if (!this.context.allowYield && this.matchKeyword('yield')) {
             expr = this.parseYieldExpression();
+        } else if (this.matchKeyword('from')) {
+            expr = this.parseQueryExpression();
         } else {
             const startToken = this.lookahead;
             let token = startToken;
@@ -1655,7 +1657,7 @@ export class Parser {
                     break;
                 case 'let':
                     statement = this.isLexicalDeclaration() ? this.parseLexicalDeclaration({ inFor: false }) : this.parseStatement();
-                    break;
+                  break;
                 default:
                     statement = this.parseStatement();
                     break;
@@ -2460,6 +2462,7 @@ export class Parser {
             case Token.StringLiteral:
             case Token.Template:
             case Token.RegularExpression:
+            case Token.Query:
                 statement = this.parseExpressionStatement();
                 break;
 
@@ -2940,6 +2943,149 @@ export class Parser {
         }
 
         return this.finalize(node, new Node.YieldExpression(argument, delegate));
+    }
+
+    // ECMA-JWL-260-NINER -2.3 Query Expressions
+
+    parseQueryExpression(): Node.QueryExpression {
+        const node = this.createNode();
+        this.expectKeyword('from');
+
+        const binding = this.nextToken().value;
+        this.matchContextualKeyword('in');
+        this.nextToken();
+        const table = this.nextToken().value;
+
+        let join : Node.Expression = new Node.Literal(null, "null");
+        if(this.matchContextualKeyword('join')) {
+            this.nextToken();
+            const joinBinding = this.nextToken().value;
+            this.matchContextualKeyword('in');
+            this.nextToken();
+            const joinTable = this.nextToken().value;
+
+            this.matchContextualKeyword('on');
+            this.nextToken();
+            const joinExpr = this.parseQuerySubExpression(true);
+
+            join = this._constructQueryObject([
+                ["binding", new Node.Literal(joinBinding, joinBinding)],
+                ["table", new Node.Literal(joinTable, joinTable)],
+                ["expr", joinExpr]
+            ])
+        }
+
+        let where : Node.Expression = new Node.Literal(null, "null");
+        if(this.matchContextualKeyword('where')) {
+            this.nextToken();
+            where = this.parseQuerySubExpression(false);
+        }
+
+        this.matchContextualKeyword('select');
+        this.nextToken();
+        this.expect('{');
+        const select = [];
+        while(!this.match('}')) {
+            select.push(this.parseQuerySubExpression(true));
+
+            // Consume `,`
+            if(this.match(',')) {
+                this.nextToken();
+            }
+        }
+        this.expect('}');
+
+        return new Node.QueryExpression(
+            table, binding, new Node.ArrayExpression(select), join, where
+        );
+    }
+
+    parseQuerySubExpression(forceQuoteIdentifiers) : Node.ObjectExpression {
+        const binaryOps = ["or", "and", "=", ">", "<", "-", "+", "*", "/", "."];
+        let isLValue = true;
+
+        const readBinaryOp = op => {
+            const precIdx = binaryOps.indexOf(op);
+            const isLast = precIdx === binaryOps.length - 1;
+            let quoteIdentifiers = precIdx
+
+            const readNext = () => {
+                if(isLast) {
+                    const token = this.nextToken();
+                    const next = this.lookahead;
+                    if(this.match('(')) {
+                        // Function call
+                        this.nextToken();
+                        let args = [];
+                        while(!this.match(')')) {
+                            args = args.concat(this.parseQuerySubExpression(quoteIdentifiers));
+
+                            // Consume `,`
+                            if(this.match(',')) {
+                                this.nextToken();
+                            }
+                        }
+                        // Consume `)`
+                        this.nextToken();
+                        return this._constructQueryObject([
+                            ["type", new Node.Literal("FunctionCall", "FunctionCall")],
+                            ["name", new Node.Literal(token.value, token.value)],
+                            ["args", new Node.ArrayExpression(args)]
+                        ]);
+                    }
+                    else if(token.type === Token.NumericLiteral ||
+                            token.type === Token.StringLiteral ||
+                            ((forceQuoteIdentifiers || isLValue) &&
+                             token.type === Token.Identifier)) {
+                        const raw = this.getTokenRaw(token);
+                        return new Node.Literal(token.value, raw);
+                    }
+                    else if(token.type === Token.Identifier) {
+                        return new Node.Identifier(token.value);
+                    }
+                    else if(token.value === '*') {
+                        return new Node.Literal('*', '*');
+                    }
+                    else {
+                        throw new Error('unknown token: [' + TokenName[token.type] + '] ' + token.value);
+                    }
+                }
+                return readBinaryOp(binaryOps[precIdx + 1]);
+            };
+
+            let left = readNext();
+            while(this.lookahead.value === op) {
+                if(precIdx >= binaryOps.indexOf('=') && op !== ".") {
+                    isLValue = false;
+                }
+                else if(op === "or" || op === "and") {
+                    isLValue = true;
+                }
+
+                this.nextToken();
+                const right = readNext();
+                left = this._constructQueryObject([
+                    ["type", new Node.Literal("BinaryExpression", "BinaryExpression")],
+                    ["op", new Node.Literal(op, op)],
+                    ["left", left],
+                    ["right", right]
+                ]);
+            }
+
+            return left;
+        }
+
+        return readBinaryOp(binaryOps[0]);
+    }
+
+    _constructQueryObject(items : any) : Node.ObjectExpression {
+        return new Node.ObjectExpression(items.map(item => {
+            return new Node.Property(
+                'init',
+                new Node.Literal(item[0], item[0]),
+                false, item[1], false, false
+            );
+        }));
     }
 
     // ECMA-262 14.5 Class Definitions

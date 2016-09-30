@@ -301,7 +301,8 @@ export class Scanner {
                     (id === 'try') || (id === 'let');
             case 4:
                 return (id === 'this') || (id === 'else') || (id === 'case') ||
-                    (id === 'void') || (id === 'with') || (id === 'enum');
+                    (id === 'void') || (id === 'with') || (id === 'enum') ||
+                    (id === 'from');
             case 5:
                 return (id === 'while') || (id === 'break') || (id === 'catch') ||
                     (id === 'throw') || (id === 'const') || (id === 'yield') ||

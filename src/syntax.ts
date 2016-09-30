@@ -44,6 +44,7 @@ export const Syntax = {
     ObjectPattern: 'ObjectPattern',
     Program: 'Program',
     Property: 'Property',
+    QueryExpression: 'QueryExpression',
     RestElement: 'RestElement',
     ReturnStatement: 'ReturnStatement',
     SequenceExpression: 'SequenceExpression',

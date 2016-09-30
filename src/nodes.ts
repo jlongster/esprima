@@ -11,7 +11,7 @@ export type Expression = ArrayExpression | ArrowFunctionExpression | AssignmentE
     BinaryExpression | CallExpression | ClassExpression | ComputedMemberExpression |
     ConditionalExpression | Identifier | FunctionExpression | Literal | NewExpression | ObjectExpression |
     RegexLiteral | SequenceExpression | StaticMemberExpression | TaggedTemplateExpression |
-    ThisExpression | UnaryExpression | UpdateExpression | YieldExpression;
+    ThisExpression | UnaryExpression | UpdateExpression | YieldExpression | QueryExpression;
 export type FunctionParameter = AssignmentPattern | BindingIdentifier | BindingPattern;
 export type ImportDeclarationSpecifier = ImportDefaultSpecifier | ImportNamespaceSpecifier | ImportSpecifier;
 export type Statement = BreakStatement | ContinueStatement | DebuggerStatement | DoWhileStatement |
@@ -539,6 +539,24 @@ export class Property {
         this.shorthand = shorthand;
     }
 }
+
+export class QueryExpression {
+    type: string;
+    table: string;
+    binding: string;
+    select: ArrayExpression;
+    join: Expression;
+    where: Expression;
+    constructor(table: string, binding: string, select: ArrayExpression, join: Expression, where: Expression) {
+      this.type = Syntax.QueryExpression;
+      this.table = table;
+      this.binding = binding;
+      this.select = select;
+      this.join = join;
+      this.where = where;
+  }
+}
+
 export class RegexLiteral {
     type: string;
     value: string;
