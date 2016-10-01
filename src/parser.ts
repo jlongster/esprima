@@ -1657,7 +1657,7 @@ export class Parser {
                     break;
                 case 'let':
                     statement = this.isLexicalDeclaration() ? this.parseLexicalDeclaration({ inFor: false }) : this.parseStatement();
-                  break;
+                    break;
                 default:
                     statement = this.parseStatement();
                     break;
