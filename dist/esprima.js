@@ -2972,7 +2972,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	    };
 	    Parser.prototype.parseQuerySubExpression = function (forceQuoteIdentifiers) {
 	        var _this = this;
-	        var binaryOps = ["or", "and", "=", ">", "<", "-", "+", "*", "/", "."];
+	        var binaryOps = ["or", "and", "=", ">=", "<=", ">", "<", "-", "+", "*", "/", "."];
 	        var isLValue = true;
 	        var readBinaryOp = function (op) {
 	            var precIdx = binaryOps.indexOf(op);

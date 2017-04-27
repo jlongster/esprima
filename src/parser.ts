@@ -3001,7 +3001,7 @@ export class Parser {
     }
 
     parseQuerySubExpression(forceQuoteIdentifiers) : Node.ObjectExpression {
-        const binaryOps = ["or", "and", "=", ">", "<", "-", "+", "*", "/", "."];
+        const binaryOps = ["or", "and", "=", ">=", "<=", ">", "<", "-", "+", "*", "/", "."];
         let isLValue = true;
 
         const readBinaryOp = op => {

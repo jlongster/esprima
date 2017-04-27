@@ -1,5 +1,5 @@
 {
-  "name": "esprima",
+  "name": "@jlongster/esprima",
   "description": "ECMAScript parsing infrastructure for multipurpose analysis",
   "homepage": "http://esprima.org",
   "main": "dist/esprima.js",
